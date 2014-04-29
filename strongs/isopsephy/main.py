@@ -1,9 +1,10 @@
 #!/usr/local/bin/python
 # -*- coding: utf-8 -*-
-# file: isopsephy.py
+# file: main.py
 
 import re
 import pandas as pd
+import search
 
 data = {}
 
@@ -424,73 +425,14 @@ def preprocess_greek(string):
     # remove all other characters
     return regex_greek2.sub('', string).encode('utf-8')
 
-# http://stackoverflow.com/questions/21380268/matching-the-sum-of-values-on-string
-def list2string(alist):
-    return " ".join(map(str, alist))
-
-def string2list(s):
-    return list(map(int, s.split()))
-
-def find_number(a, total):
-    u = 0
-    y = 0 # the current sum of the interval (u .. v)
-    res = []
-    for v in range(0, len(a)):
-        # at this point the interval sum y is smaller than the requested total,
-        # so we move the right end of the interval forward
-        y += a[v]
-        while y >= total:
-            if y == total:
-                res.append(list2string(a[ u : v+1 ]))
-            # if the current sum is too large, move the left end of the interval forward
-            y -= a[u]
-            u += 1
-    return res
-
-def search_by_num(text, num):
-    return list2string(find_number(string2list(text), num))
-
-def digital_root(num, modulo = 9):
-    # similar to modulo, but 0 = 9 and 9 = 9
-    val = num % modulo
-    return val if val > 0 else modulo
-
-def digital_sum(num):
-    return sum(prepare_digital_operation(num))
-
-def digital_product(num):
-    return reduce(lambda x, y: x * y, prepare_digital_operation(num), 1)
-
-def prepare_digital_operation(num):
-    # strip off 0|,|. and return a list of single digit integers from original number
-    return map(int, str(num).replace('0', '').replace('.', '').replace(',', ''))
-
-def char_table(text, mod = 9, capitalize = None, html = False):
-    data = dict([key, []] for key in ['letter', 'transliteration', 'isopsephy', 'digital_sum', 'word'])
-    # split text to columns: #, letter, translit, num, mod, word
-    if capitalize == True:
-        text = to_roman(text).upper()
-    elif capitalize == False:
-        text = to_roman(text).lower()
+def find(text, num, cumulative = False):
+    words = text.split()
+    numbers = list(map(isopsephy, words))
+    if cumulative:
+        result = []
+        for incides in search.find_cumulative_indices(numbers, num):
+            result.append(' '.join([words[idx] for idx in incides]))
+        return result
     else:
-        text = to_roman(text)
-    for word in text.split(" "):
-        for letter in word:
-            data['letter'].append(to_greek(letter))
-            data['transliteration'].append(letter)
-            num = isopsephy(letter)
-            data['isopsephy'].append(num)
-            data['digital_sum'].append(digital_root(num))
-            data['word'].append(word)
-    if html:
-        # create html table from result
-        return ""
-    else:
-        return pd.DataFrame(data)
-
-def digital_root_summary(df):
-    df2 = df.groupby('word').sum()
-    df2['digital_root'] = df2['digital_sum'].apply(digital_root)
-    df2['digital_product'] = df2['isopsephy'].apply(digital_product)
-    df2['digital_product_root'] = df2['digital_product'].apply(digital_root)
-    return df2
+        return [words[idx] for idx in map(numbers.index, numbers) if numbers[idx] == num]
+            
