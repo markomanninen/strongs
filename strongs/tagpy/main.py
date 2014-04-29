@@ -1,8 +1,9 @@
-"""
-tagpy : Simple html tag generator / factory
-"""
+#!/usr/local/bin/python
+# -*- coding: utf-8 -*-
+# file: main.py
+
 class TAG(object):
-    """ Base tag class """
+    """ Simple html tag generator """
     def __init__(self, *args, **kw):
         self._name = self.__class__.__name__.lower()
         self._attributes = dict([k.lower(), str(w)] for k, w in kw.iteritems())
@@ -167,8 +168,10 @@ def table(*args, **kw):
     
     return table(*args, **kw)
 
+#
 """
 All tag elements are accessible via readily constructed factory variable. This helper
-should be imported from the module in this wise: from tagpy import helper as h
+should be imported from the module in this wise: from tagpy import helper
+OR from tagpy import helper as h if shorter variable name is preferred
 """
 helper = htmlHelper()
