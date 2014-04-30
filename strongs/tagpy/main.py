@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # file: main.py
 
+from copy import deepcopy
+
 class TAG(object):
     """ Simple html tag generator """
     def __init__(self, *args, **kw):
@@ -27,37 +29,26 @@ class TAG(object):
     def rcontent(self, item):
         return self.__rshift__(item)
     def __rshift__(self, item):
-        item._in.append(item.__item__(self))
-        return item
+        self._in = [item] + self._in
+        return self
 
     def content(self, item):
         return self.__lshift__(item)
     def __lshift__(self, item):
-        self._in.append(self.__item__(item))
+        self._in.append(item)
         return self
 
     def prepend(self, item):
         return self.__radd__(item)
-    def left(self, item):
-        return self.__radd__(item)
     def __radd__(self, item):
-        self._left.append(self.__item__(item))
+        self._left.append(item)
         return self
 
     def append(self, item):
         return self.__add__(item)
-    def right(self, item):
-        return self.__add__(item)
     def __add__(self, item):
-        self._right.append(self.__item__(item))
+        self._right.append(item)
         return self
-
-    def __item__(self, item):
-        if callable(item):
-            item = item()
-        elif not issubclass(type(item), TAG):
-            item = str(item)
-        return item
 
     def renderAttributes(self):
         attr = ''
@@ -66,28 +57,32 @@ class TAG(object):
         return attr
 
     def __str__(self):
+
+        left = ''
+        right = ''
+        element = ''
+
         if self._in:
-            in_elements = ''.join([str(item) for item in self._in])
+            in_elements = ''.join([str(item() if callable(item) else item) for item in self._in])
             element = '<%s%s>%s</%s>' % (self._name, self.renderAttributes(), in_elements, self._name)
         else:
             element = '<%s%s/>' % (self._name, self.renderAttributes())
-        left = ''
+
         if self._left:
-            left = ''.join(map(str, self._left))
-        right = ''
+            left = ''.join(map(lambda item: str(item() if callable(item) else item), self._left))
+
         if self._right:
-            right = ''.join(map(str, self._right))
+            right = ''.join(map(lambda item: str(item() if callable(item) else item), self._right))
+
         return  left + element + right
 
 class htmlHelper(object):
     """ Tag generation factory """
     def __getattr__(self, tag):
         """ This method only gets called for attributes (ie. tags in this application) that don't exist yet. """
-        if self.__dict__.has_key(tag):
-            return self.__dict__[tag]
-        else:
+        if not self.__dict__.has_key(tag):
             self.__dict__[tag] = type(tag, (TAG,), {})
-            return self.__dict__[tag]
+        return deepcopy(self.__dict__[tag])
 
 def table(*args, **kw):
     global helper
